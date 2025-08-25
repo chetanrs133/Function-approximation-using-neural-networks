@@ -1,0 +1,32 @@
+json_schema = {
+    "type": "object",
+    "properties": {
+        "original_question": {
+            "type": "string"
+        },
+        "paraphrases": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "minItems": 1
+        }
+    },
+    "required": ["original_question", "paraphrases"],
+    "additionalProperties": False
+}
+
+response = client.chat.completions.parse(
+    
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "ParaphraseOutput",
+            "strict": True,
+            "schema": json_schema
+        }
+    }
+)
+
+parsed = response.choices[0].message.parsed
+print(parsed)
