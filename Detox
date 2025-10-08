@@ -1,0 +1,8 @@
+Detoxify (Original) is an open-source text classification model developed by Unitary AI (2021) and based on BERT-base-uncased (Devlin et al., 2019). The model was fine-tuned on the Jigsaw Toxic Comment Classification dataset to identify and score multiple types of online toxicity—such as general toxicity, insult, threat, obscene language, and identity attack. It uses a transformer architecture to output probabilistic toxicity scores (0–1) for each category, enabling quantitative screening of user-generated or internal text data.
+
+This approach was selected for its proven benchmark performance, transparent open-source implementation, and alignment with reproducibility and explainability standards required under model-risk governance. The BERT backbone offers strong generalization across English text with interpretable attention-based mechanisms, while remaining computationally efficient for large-scale testing. Key limitations include potential bias toward identity-related language and reduced reliability outside English. The model is used as a baseline toxic-language detector within risk-testing workflows, with human review and threshold calibration applied to mitigate false-positive and bias risks.
+
+Citations:
+
+Unitary AI (2021). Detoxify: Toxic comment classification models. GitHub. https://github.com/unitaryai/detoxify
+Devlin, J., Chang, M. W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. NAACL-HLT 2019. https://arxiv.org/abs/1810.04805
