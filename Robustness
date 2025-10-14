@@ -1,0 +1,108 @@
+import random, math, difflib, pandas as pd
+
+# --- Keyboard adjacency map (simplified QWERTY) ---
+qwerty_neighbors = {
+    'a': 'qwsz', 'b': 'vghn', 'c': 'xdfv', 'd': 'ersfcx', 'e': 'wsdr',
+    'f': 'rtgvcd', 'g': 'tyhbvf', 'h': 'yujnbg', 'i': 'ujko', 'j': 'uikmnh',
+    'k': 'ijolm', 'l': 'okp', 'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol',
+    'q': 'wa', 'r': 'edft', 's': 'awedxz', 't': 'rfgy', 'u': 'yihj', 'v': 'cfgb',
+    'w': 'qase', 'x': 'zsdc', 'y': 'tghu', 'z': 'asx',
+    '1':'2', '2':'13', '3':'24', '4':'35', '5':'46', '6':'57', '7':'68', '8':'79', '9':'80', '0':'9-'
+}
+
+# --- Typo helper functions ---
+def substitute_char(ch):
+    """Substitute with a nearby keyboard character"""
+    if ch.lower() in qwerty_neighbors and ch.isalpha():
+        choices = qwerty_neighbors[ch.lower()]
+        sub = random.choice(choices)
+        return sub.upper() if ch.isupper() else sub
+    return ch
+
+def insert_char(ch):
+    """Insert an extra nearby or vowel character"""
+    return ch + random.choice('aeiou')
+
+def delete_char(ch):
+    """Delete a character"""
+    return ''
+
+def transpose_chars(s, i):
+    """Swap two adjacent characters"""
+    if i + 1 < len(s):
+        lst = list(s)
+        lst[i], lst[i + 1] = lst[i + 1], lst[i]
+        return ''.join(lst)
+    return s
+
+def homoglyph(ch):
+    """Replace with a visually similar character"""
+    glyphs = {'o': '0', 'l': '1', 'i': '1', 's': '5', 'e': '3', 'a': '@', 'b': '8', 'g': '9'}
+    return glyphs.get(ch.lower(), ch)
+
+# --- Apply typos to a given string ---
+def apply_typos(text, strength=0.1, seed=None):
+    """Apply typos such that roughly 'strength' fraction of characters are modified."""
+    if seed is not None:
+        random.seed(seed)
+
+    s_list = list(text)
+    n_chars = max(1, len(text.replace(" ", "")))
+    target = math.ceil(strength * n_chars)
+    indices = [i for i, ch in enumerate(text) if ch != ' ']
+    random.shuffle(indices)
+    indices = indices[:target]
+
+    ops = [('sub', 0.35), ('del', 0.18), ('ins', 0.15), ('trans', 0.18), ('homo', 0.14)]
+    op_names, op_weights = zip(*ops)
+
+    for i in sorted(indices):
+        if i >= len(s_list): continue
+        ch = s_list[i]
+        op = random.choices(op_names, weights=op_weights, k=1)[0]
+        if op == 'sub':
+            s_list[i] = substitute_char(ch)
+        elif op == 'del':
+            s_list[i] = ''
+        elif op == 'ins':
+            s_list.insert(i + 1, random.choice('aeiou'))
+        elif op == 'trans':
+            s_list = list(transpose_chars(''.join(s_list), i))
+        elif op == 'homo':
+            s_list[i] = homoglyph(ch)
+    return ''.join(s_list)
+
+# --- Approximate Character Error Rate ---
+def approx_cer(a, b):
+    sm = difflib.SequenceMatcher(None, a, b)
+    matches = sum(block.size for block in sm.get_matching_blocks())
+    errors = max(len(a), len(b)) - matches
+    return round(errors / max(1, len(a)), 3)
+
+# --- Example usage ---
+if __name__ == "__main__":
+    queries = [
+        "What is the capital of France?",
+        "List the steps to bake a chocolate cake.",
+        "Explain quantum entanglement in simple terms.",
+        "Provide the bibliography for recent research on transformers.",
+        "How do I reset my router if it's not connecting to the internet?"
+    ]
+
+    data = []
+    for q in queries:
+        t10 = apply_typos(q, 0.10, seed=1)
+        t20 = apply_typos(q, 0.20, seed=2)
+        t30 = apply_typos(q, 0.30, seed=3)
+        data.append({
+            "Original": q,
+            "10% Typos": t10,
+            "CER_10": approx_cer(q, t10),
+            "20% Typos": t20,
+            "CER_20": approx_cer(q, t20),
+            "30% Typos": t30,
+            "CER_30": approx_cer(q, t30)
+        })
+
+    df = pd.DataFrame(data)
+    print(df.to_string(index=False))
