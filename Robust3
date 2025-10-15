@@ -1,0 +1,78 @@
+import random, math
+
+# simplified QWERTY neighbors for realistic substitutions
+qwerty_neighbors = {
+    'a': 'qwsz', 'b': 'vghn', 'c': 'xdfv', 'd': 'ersfcx', 'e': 'wsdr', 'f': 'rtgvcd',
+    'g': 'tyhbvf', 'h': 'yujnbg', 'i': 'ujko', 'j': 'uikmnh', 'k': 'ijolm', 'l': 'okp',
+    'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol', 'q': 'wa', 'r': 'edft', 's': 'awedxz',
+    't': 'rfgy', 'u': 'yihj', 'v': 'cfgb', 'w': 'qase', 'x': 'zsdc', 'y': 'tghu', 'z': 'asx'
+}
+
+# --- individual typo operations ---
+def substitute_char(ch):
+    if ch.lower() in qwerty_neighbors and ch.isalpha():
+        sub = random.choice(qwerty_neighbors[ch.lower()])
+        return sub.upper() if ch.isupper() else sub
+    return ch
+
+def insert_char(ch):
+    """Insertion = duplicate key (realistic accidental repeat)."""
+    return ch * 2
+
+def delete_char(ch):
+    return ''
+
+def transpose_chars(s, i):
+    """Swap adjacent letters (e.g., 'teh' for 'the')."""
+    if i + 1 < len(s):
+        lst = list(s)
+        lst[i], lst[i + 1] = lst[i + 1], lst[i]
+        return ''.join(lst)
+    return s
+
+def swap_case_char(ch):
+    """Toggle case for casing inconsistencies."""
+    return ch.swapcase() if ch.isalpha() else ch
+
+# --- main typo generator ---
+def apply_typos(text, strength=0.1, seed=None):
+    """
+    Apply realistic typos to `text`:
+      - substitute, delete, duplicate, transpose, swap-case
+    `strength` = fraction of characters to perturb (0.1 = ~10%)
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    s = text
+    n_chars = max(1, len(s.replace(" ", "")))
+    target = math.ceil(strength * n_chars)
+    indices = [i for i, ch in enumerate(s) if ch != ' ']
+    random.shuffle(indices)
+    indices = indices[:target]
+    s_list = list(s)
+
+    # operation mix: realistic proportions
+    ops = [('sub', 0.35), ('del', 0.18), ('ins', 0.15), ('trans', 0.18), ('swap', 0.14)]
+    op_names, op_weights = zip(*ops)
+
+    for i in sorted(indices):
+        if i >= len(s_list):
+            continue
+        ch = s_list[i]
+        op = random.choices(op_names, weights=op_weights, k=1)[0]
+
+        if op == 'sub' and ch.isalpha():
+            s_list[i] = substitute_char(ch)
+        elif op == 'del':
+            del s_list[i]
+        elif op == 'ins':
+            s_list.insert(i + 1, ch)  # duplicate
+        elif op == 'trans':
+            s_list = list(transpose_chars(''.join(s_list), i))
+        elif op == 'swap' and ch.isalpha():
+            s_list[i] = swap_case_char(ch)
+        else:
+            s_list[i] = substitute_char(ch)
+
+    return ''.join(s_list)
