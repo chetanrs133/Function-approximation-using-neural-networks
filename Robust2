@@ -1,0 +1,40 @@
+import difflib
+
+def typo_stats(original: str, perturbed: str):
+    """
+    Compare two sentences and compute:
+      - num_perturbed_words
+      - avg_percent_chars_changed_per_word (%)
+    """
+    orig_words = original.split()
+    pert_words = perturbed.split()
+    sm = difflib.SequenceMatcher(None, orig_words, pert_words)
+
+    changed_word_diffs = []
+
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag != "equal":
+            for i in range(i1, i2):
+                if i < len(orig_words):
+                    ow = orig_words[i]
+                    pw = pert_words[j1] if j1 < len(pert_words) else ""
+                    smw = difflib.SequenceMatcher(None, ow, pw)
+                    matches = sum(b.size for b in smw.get_matching_blocks())
+                    diff = max(len(ow), len(pw)) - matches
+                    if len(ow) > 0:
+                        pct = 100 * diff / len(ow)
+                        changed_word_diffs.append(pct)
+
+    num_changed = len(changed_word_diffs)
+    avg_pct = round(sum(changed_word_diffs) / num_changed, 2) if num_changed > 0 else 0.0
+
+    return {
+        "num_perturbed_words": num_changed,
+        "avg_pct_chars_changed_per_word": avg_pct
+    }
+
+# --- Example usage ---
+orig = "List the steps to bake a chocolate cake."
+pert = "List the stpes to bake a choclate cake."
+
+print(typo_stats(orig, pert))
