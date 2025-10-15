@@ -1,0 +1,120 @@
+import random, math, difflib, pandas as pd
+
+# --- QWERTY neighbor map for realistic substitutions ---
+qwerty_neighbors = {
+    'a': 'qwsz', 'b': 'vghn', 'c': 'xdfv', 'd': 'ersfcx', 'e': 'wsdr',
+    'f': 'rtgvcd', 'g': 'tyhbvf', 'h': 'yujnbg', 'i': 'ujko', 'j': 'uikmnh',
+    'k': 'ijolm', 'l': 'okp', 'm': 'njk', 'n': 'bhjm', 'o': 'iklp', 'p': 'ol',
+    'q': 'wa', 'r': 'edft', 's': 'awedxz', 't': 'rfgy', 'u': 'yihj', 'v': 'cfgb',
+    'w': 'qase', 'x': 'zsdc', 'y': 'tghu', 'z': 'asx',
+    '1':'2', '2':'13', '3':'24', '4':'35', '5':'46', '6':'57', '7':'68', '8':'79', '9':'80', '0':'9-'
+}
+
+# --- Basic typo functions ---
+def substitute_char(ch):
+    if ch.lower() in qwerty_neighbors and ch.isalpha():
+        sub = random.choice(qwerty_neighbors[ch.lower()])
+        return sub.upper() if ch.isupper() else sub
+    return ch
+
+def insert_char(ch):
+    return ch + random.choice('aeiou')
+
+def delete_char(ch):
+    return ''
+
+def transpose_chars(s, i):
+    if i + 1 < len(s):
+        lst = list(s)
+        lst[i], lst[i + 1] = lst[i + 1], lst[i]
+        return ''.join(lst)
+    return s
+
+def homoglyph(ch):
+    glyphs = {'o': '0', 'l': '1', 'i': '1', 's': '5', 'e': '3', 'a': '@', 'b': '8', 'g': '9'}
+    return glyphs.get(ch.lower(), ch)
+
+# --- Apply typos only to selected words ---
+def apply_localized_typos(text, strength=0.2, n_words_to_corrupt=None, seed=None):
+    """
+    Apply realistic typos (sub/del/ins/trans/homo) to 1–3 randomly chosen words in the query.
+    `strength`: fraction of characters *within those words* to corrupt.
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    words = text.split()
+    if not words:
+        return text
+
+    # Pick 1–3 words to corrupt
+    n_to_corrupt = n_words_to_corrupt or random.randint(1, min(3, len(words)))
+    selected_indices = random.sample(range(len(words)), n_to_corrupt)
+
+    # Probabilities for different typo types
+    ops = [('sub', 0.35), ('del', 0.18), ('ins', 0.15), ('trans', 0.18), ('homo', 0.14)]
+    op_names, op_weights = zip(*ops)
+
+    new_words = []
+    for i, word in enumerate(words):
+        if i not in selected_indices or len(word) < 3:
+            new_words.append(word)
+            continue
+
+        # Corrupt only a fraction of chars in this word
+        s_list = list(word)
+        n_chars = len([ch for ch in s_list if ch.isalnum()])
+        n_changes = max(1, math.ceil(strength * n_chars))
+        idxs = random.sample(range(len(s_list)), n_changes)
+
+        for j in sorted(idxs):
+            op = random.choices(op_names, weights=op_weights, k=1)[0]
+            ch = s_list[j]
+            if op == 'sub':
+                s_list[j] = substitute_char(ch)
+            elif op == 'del':
+                s_list[j] = ''
+            elif op == 'ins':
+                s_list.insert(j + 1, random.choice('aeiou'))
+            elif op == 'trans':
+                s_list = list(transpose_chars(''.join(s_list), j))
+            elif op == 'homo':
+                s_list[j] = homoglyph(ch)
+        new_words.append(''.join(s_list))
+
+    return ' '.join(new_words)
+
+# --- Utility: Approximate character error rate ---
+def approx_cer(a, b):
+    sm = difflib.SequenceMatcher(None, a, b)
+    matches = sum(block.size for block in sm.get_matching_blocks())
+    errors = max(len(a), len(b)) - matches
+    return round(errors / max(1, len(a)), 3)
+
+# --- Demo ---
+if __name__ == "__main__":
+    queries = [
+        "What is the capital of France?",
+        "List the steps to bake a chocolate cake.",
+        "Explain quantum entanglement in simple terms.",
+        "Provide the bibliography for recent research on transformers.",
+        "How do I reset my router if it's not connecting to the internet?"
+    ]
+
+    rows = []
+    for q in queries:
+        t10 = apply_localized_typos(q, 0.1, seed=1)
+        t20 = apply_localized_typos(q, 0.2, seed=2)
+        t30 = apply_localized_typos(q, 0.3, seed=3)
+        rows.append({
+            "Original": q,
+            "10% Typos": t10,
+            "CER_10": approx_cer(q, t10),
+            "20% Typos": t20,
+            "CER_20": approx_cer(q, t20),
+            "30% Typos": t30,
+            "CER_30": approx_cer(q, t30)
+        })
+
+    df = pd.DataFrame(rows)
+    print(df.to_string(index=False))
