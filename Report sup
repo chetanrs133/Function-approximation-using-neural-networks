@@ -1,0 +1,27 @@
+1. Qwerty (Character-Level)
+
+The qwerty perturbation simulates typing errors caused by pressing keys near the intended character on a standard keyboard (e.g., “gppd” instead of “good”). Such errors are extremely common in real-world user queries, especially on mobile devices. Testing with this perturbation helps evaluate how well the RAG model handles noisy or imperfect input at the character level. It ensures that minor typographical mistakes do not lead to significant retrieval or comprehension failures.
+
+⸻
+
+2. Deletion (Character-Level)
+
+The deletion perturbation randomly removes a character from a word, representing common mistakes such as missing letters during fast or careless typing (e.g., “recieve” for “receive”). These small spelling variations can affect tokenization and embedding quality, particularly in retrieval-heavy architectures. Including deletion tests helps verify the model’s tolerance to minor textual corruption and its ability to retrieve relevant information despite incomplete tokens.
+
+⸻
+
+3. Synonym (Word-Level)
+
+The synonym perturbation replaces a word with another that has a similar meaning (e.g., “purchase” → “buy”). This tests the RAG system’s ability to handle semantic variation, ensuring that retrieval is driven by meaning rather than exact lexical overlap. It is especially important for evaluating how well the model captures conceptual similarity when users express queries in different but semantically equivalent forms.
+
+⸻
+
+4. Wordswap (Word-Level)
+
+The wordswap perturbation randomly swaps the positions of two words in a sentence. This simulates queries with unusual or incorrect word order, which are common in spontaneous user input. Evaluating the model under this condition tests its robustness to syntactic variation and its ability to infer intent even when sentence structure deviates from standard patterns.
+
+⸻
+
+5. Swapcase (Character-Level)
+
+The swapcase perturbation changes the case of a single character within a word (e.g., “Data” → “dAta”). Although seemingly minor, it checks whether the RAG pipeline’s preprocessing and tokenization stages are case-insensitive and reliable. Including this test ensures that simple case inconsistencies do not interfere with query rewriting, embedding generation, or document retrieval.
