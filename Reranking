@@ -1,0 +1,15 @@
+To assess the sensitivity of the RAG system to retrieval order, we performed reranking-based robustness testing, which examines how the ordering of retrieved contexts influences model output while keeping the underlying content fixed. Two complementary reranking perturbations were used:
+	1.	Top-k Local Swap (Mild Perturbation):
+The positions of the top-ranked contexts were locally exchanged (e.g., swapping the top-1 and top-2 passages). This mimics small, realistic retrieval noise, where closely scored documents may be misordered due to minor embedding or ranking variations.
+	2.	Full Rank Reversal (Strong Perturbation):
+The order of the top-k retrieved contexts was completely reversed. This represents an extreme yet controlled perturbation, testing whether the model’s reasoning is overly dependent on early-ranked evidence or remains stable when salient documents are placed last.
+
+After applying each perturbation, the RAG model was re-run with the reordered context lists, and its generations were compared against baseline outputs using semantic similarity and performance metrics.
+
+⸻
+
+Rationale for Methodological Choice
+
+Reranking perturbations were chosen to isolate ranking sensitivity without altering the retrieved content, ensuring that any observed output variation is attributable to evidence ordering rather than evidence presence. This approach directly reflects realistic retrieval uncertainty in production systems, where documents are seldom removed but frequently appear in slightly different orders across runs.
+
+In addition, full rank reversal can be interpreted as a limiting case of leave-one-out perturbation: when relevant contexts are pushed to the bottom of the list, their effective contribution to the model’s attention becomes negligible, functionally approximating their removal. Thus, the reranking framework not only offers a computationally efficient alternative to leave-one-out but also subsumes its effects within a continuous spectrum of order perturbations—from mild local swaps to near-exclusion through full reversal. This makes reranking both theoretically sound and operationally practical for robustness evaluation.
