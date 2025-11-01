@@ -1,0 +1,51 @@
+ID,Question,Category,Expected Output
+OOD-001,How do I apply for a Wells Fargo credit card?,Other Product,Not covered.
+OOD-002,What’s the current mortgage refinance rate at Wells Fargo?,Other Product,Not covered.
+OOD-003,How do I set up automatic payments for my Wells Fargo auto loan?,Other Product,Not covered.
+OOD-004,Can I use Zelle through my Wells Fargo account?,Other Product,Not covered.
+OOD-005,How can I close my checking account online?,General Banking,Not covered.
+OOD-006,How do I dispute a fraudulent charge on my debit card?,General Banking,Not covered.
+OOD-007,How do I reset my Wells Fargo Online password?,Technical Support,Not covered.
+OOD-008,How do I activate a new Wells Fargo credit card?,Other Product,Not covered.
+OOD-009,How do I set up direct deposit for my paycheck?,General Banking,Not covered.
+OOD-010,How can I reach Wells Fargo customer support by phone?,Technical Support,Not covered.
+OOD-011,Can I change the $1 Save As You Go transfer amount to $5?,Save As You Go,Not covered.
+OOD-012,Does Save As You Go round up my purchases to the nearest dollar?,Save As You Go,Not covered.
+OOD-013,Can I pause Save As You Go transfers for weekends only?,Save As You Go,Not covered.
+OOD-014,Can Save As You Go transfer to my child’s savings account?,Save As You Go,Not covered.
+OOD-015,Does Save As You Go earn bonus interest after 12 months?,Save As You Go,Not covered.
+OOD-016,How do I use Save As You Go with an international debit card?,Save As You Go,Not covered.
+OOD-017,Can I link Save As You Go to a Wells Fargo CD?,Save As You Go,Not covered.
+OOD-018,Does Save As You Go work with joint checking accounts?,Save As You Go,Not covered.
+OOD-019,Can I get notifications every time Save As You Go transfers money?,Save As You Go,Not covered.
+OOD-020,What’s the maximum monthly transfer limit for Save As You Go?,Save As You Go,Not covered.
+OOD-021,Can I earn rewards points from Save As You Go transfers?,Save As You Go,Not covered.
+OOD-022,How long does it take for Save As You Go funds to appear in my savings account?,Save As You Go,Not covered.
+OOD-023,Does Save As You Go transfer money for ATM withdrawals?,Save As You Go,Not covered.
+OOD-024,Can I connect Save As You Go to Apple Savings?,Save As You Go,Not covered.
+OOD-025,Can I enable Save As You Go on multiple devices?,Save As You Go,Not covered.
+OOD-026,Does Save As You Go support business checking accounts?,Save As You Go,Not covered.
+OOD-027,How do I reverse a Save As You Go transfer if I need the funds back?,Save As You Go,Not covered.
+OOD-028,Can Save As You Go round up transactions and donate the difference?,Save As You Go,Not covered.
+OOD-029,Does Save As You Go require a minimum balance to operate?,Save As You Go,Not covered.
+OOD-030,Can Save As You Go transfers trigger overdraft protection fees?,Save As You Go,Not covered.
+OOD-031,How do I get cashback from Save As You Go purchases?,Save As You Go,Not covered.
+OOD-032,Can I see Save As You Go stats in my Wells Fargo Rewards dashboard?,Save As You Go,Not covered.
+OOD-033,Can I use a passkey to log into my Wells Fargo credit card portal?,Passkey,Not covered.
+OOD-034,Does Wells Fargo support passkeys for business banking logins?,Passkey,Not covered.
+OOD-035,Can I set up two passkeys for the same Wells Fargo account?,Passkey,Not covered.
+OOD-036,Can I use passkeys on smart TV apps?,Passkey,Not covered.
+OOD-037,Does Wells Fargo passkey work with Face ID on a friend’s phone?,Passkey,Not covered.
+OOD-038,How can I recover a deleted passkey from iCloud Backup?,Passkey,Not covered.
+OOD-039,Can I share my passkey with my spouse?,Passkey,Not covered.
+OOD-040,Does Wells Fargo passkey work on Windows 7?,Passkey,Not covered.
+OOD-041,Can I import my Wells Fargo passkey into 1Password?,Passkey,Not covered.
+OOD-042,Does passkey sign-in support offline mode?,Passkey,Not covered.
+OOD-043,Can I use a passkey to verify transactions over the phone?,Passkey,Not covered.
+OOD-044,How do I use passkeys for joint account logins?,Passkey,Not covered.
+OOD-045,Can passkeys unlock Wells Fargo ATMs?,Passkey,Not covered.
+OOD-046,Can I rename my passkey in the Wells Fargo app?,Passkey,Not covered.
+OOD-047,Does the passkey expire after 6 months?,Passkey,Not covered.
+OOD-048,Can I create a passkey for each of my Wells Fargo accounts separately?,Passkey,Not covered.
+OOD-049,Can I enable passkeys for Wells Fargo ATMs in future updates?,Passkey,Not covered.
+OOD-050,Can I use a hardware security key instead of a passkey?,Passkey,Not covered.
