@@ -1,0 +1,141 @@
+import json
+import os
+import time
+from typing import Dict, Any
+from tqdm import tqdm
+from openai import OpenAI
+
+# ==========================
+# Configuration
+# ==========================
+
+MODEL_NAME = "gemini-2.5-pro"
+RESPONSES_FILE = "response.jsonl"
+SOURCES_FILE = "source_info.jsonl"
+OUTPUT_FILE = "qa_faithfulness_judged.jsonl"
+
+# Set your key:
+# export OPENAI_API_KEY="your_key"
+client = OpenAI()
+
+# ==========================
+# Prompts (Faithfulness Only)
+# ==========================
+
+SYSTEM_PROMPT = """You are an expert evaluator of factual grounding in retrieval-augmented generation (RAG).
+
+Your task is to determine whether a model response is fully supported by the provided source passages.
+
+A response is UNFAITHFUL if:
+- It contains information not present in the source
+- It contradicts the source
+- It adds unsupported details
+
+Return STRICT JSON in the following format:
+
+{
+  "faithful": boolean,
+  "reasoning": string
+}
+"""
+
+USER_TEMPLATE = """Source Passages:
+{source}
+
+Model Response:
+{response}
+
+Is the response fully supported by the source passages?
+Return JSON only.
+"""
+
+# ==========================
+# Utilities
+# ==========================
+
+def load_jsonl(path):
+    with open(path, "r") as f:
+        for line in f:
+            yield json.loads(line)
+
+
+def call_llm_judge(source_text: str, response_text: str) -> Dict[str, Any]:
+    user_prompt = USER_TEMPLATE.format(
+        source=source_text,
+        response=response_text
+    )
+
+    completion = client.chat.completions.create(
+        model=MODEL_NAME,
+        temperature=0.0,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ],
+    )
+
+    content = completion.choices[0].message.content.strip()
+
+    # Robust JSON parsing
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        return json.loads(content[start:end])
+
+
+# ==========================
+# Main
+# ==========================
+
+def main():
+
+    # Load all sources into dict
+    source_dict = {}
+    for item in load_jsonl(SOURCES_FILE):
+        if item.get("task_type") == "QA":
+            source_dict[item["source_id"]] = item
+
+    with open(OUTPUT_FILE, "w") as out_f:
+
+        for response_item in tqdm(load_jsonl(RESPONSES_FILE)):
+
+            source_id = response_item["source_id"]
+
+            # Skip non-QA
+            if source_id not in source_dict:
+                continue
+
+            source_entry = source_dict[source_id]
+
+            # Combine passages into single text block
+            passages = source_entry["source_info"]["passages"]
+            combined_source = "\n\n".join(passages)
+
+            response_text = response_item["response"]
+
+            # Call LLM judge
+            judgment = call_llm_judge(
+                source_text=combined_source,
+                response_text=response_text
+            )
+
+            output = {
+                "response_id": response_item["id"],
+                "source_id": source_id,
+                "model": response_item.get("model"),
+                "split": response_item.get("split"),
+                "faithfulness_judgment": judgment
+            }
+
+            out_f.write(json.dumps(output) + "\n")
+
+            # Optional small sleep for rate limiting
+            time.sleep(0.1)
+
+    print(f"Saved results to {OUTPUT_FILE}")
+
+
+if __name__ == "__main__":
+    main()
