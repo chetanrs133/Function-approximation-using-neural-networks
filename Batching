@@ -1,0 +1,34 @@
+import asyncio
+from openai import AsyncOpenAI
+
+client = AsyncOpenAI(
+    api_key="YOUR_API_KEY",
+    base_url="YOUR_GEMINI_OPENAI_STYLE_ENDPOINT"
+)
+
+SEM_LIMIT = 20  # number of concurrent workers
+
+async def judge(sample, semaphore):
+    async with semaphore:
+        response = await client.chat.completions.create(
+            model="gemini-2.5-flash",
+            messages=[
+                {"role": "system", "content": "Return 0 or 1 only."},
+                {"role": "user", "content": sample}
+            ],
+            temperature=0,
+            max_tokens=5
+        )
+        return response.choices[0].message.content.strip()
+
+async def main(samples):
+    semaphore = asyncio.Semaphore(SEM_LIMIT)
+
+    tasks = [
+        asyncio.create_task(judge(sample, semaphore))
+        for sample in samples
+    ]
+
+    return await asyncio.gather(*tasks)
+
+# results = asyncio.run(main(list_of_5000_samples))
