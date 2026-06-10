@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM as a Judge: Best Practices</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 1. CORE SETUP & PPT BOUNDARIES */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background-color: #e2e8f0; 
+            display: grid; 
+            place-items: center; 
+            padding: 20px 0; 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            min-height: 100vh;
+        }
+
+        /* Standard 16:9 PowerPoint Slide Ratio */
+        .presentation-container {
+            width: 1333px;
+            height: 750px;
+            background-color: #ffffff; /* Clean white background */
+            position: relative;
+            display: none; 
+            flex-direction: column;
+            padding: 40px 55px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .presentation-container.active {
+            display: flex;
+        }
+
+        /* 2. HEADER STYLING (Red Headings, Golden Lines) */
+        .slide-header {
+            position: relative;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .slide-title {
+            font-size: 32px;
+            color: #b91c1c; /* Deep Red heading */
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .accent-line {
+            width: 80px;
+            height: 5px;
+            background-color: #d97706; /* Golden accent line */
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+        }
+
+        /* 3. LAYOUT: TWO COLUMNS (Tree + Cards) */
+        .content-layout {
+            display: flex;
+            flex-grow: 1;
+            gap: 40px;
+            height: calc(100% - 85px);
+        }
+
+        .left-pane {
+            flex: 0 0 380px; /* Fixed width for the tree map */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 10px;
+        }
+
+        .right-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            padding-right: 10px;
+            padding-bottom: 40px;
+        }
+
+        /* Custom Scrollbar for right pane */
+        .right-pane::-webkit-scrollbar { width: 6px; }
+        .right-pane::-webkit-scrollbar-track { background: transparent; }
+        .right-pane::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* 4. NEW MIND MAP DESIGN (Matching image_e402cd.png) */
+        .map-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            min-height: 42px;
+        }
+
+        .map-root {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            font-weight: 600;
+            width: 220px;
+            text-align: left;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .map-root.inactive {
+            background-color: #ffffff;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+
+        .map-root.active {
+            background-color: #991b1b;
+            color: #ffffff;
+            border: 1px solid #991b1b;
+            box-shadow: 0 4px 10px rgba(153, 27, 27, 0.2);
+        }
+
+        .map-connector {
+            width: 25px;
+            height: 2px;
+            background-color: #d97706; /* Golden connector */
+            opacity: 0; /* Hidden by default */
+        }
+
+        .map-row.has-active-children .map-connector {
+            opacity: 1;
+        }
+
+        .map-children {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            display: none; /* Hidden by default */
+        }
+
+        .map-row.has-active-children .map-children {
+            display: flex;
+        }
+
+        .map-child {
+            background-color: #d97706; /* Golden child nodes */
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            width: 180px;
+            box-shadow: 0 2px 5px rgba(217, 119, 6, 0.2);
+        }
+
+        /* 5. NEW CONTENT CARDS (Matching image_e3ff2e.png) */
+        .content-card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0; /* Prevent shrinking in flex container */
+        }
+
+        .card-header {
+            padding: 14px 20px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .card-header.bg-red { background-color: #b91c1c; }
+        .card-header.bg-gold { background-color: #d97706; }
+        .card-header.bg-slate { background-color: #334155; }
+
+        .card-body {
+            display: flex;
+            flex-direction: row;
+            background: #ffffff;
+        }
+
+        .card-col {
+            flex: 1;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .col-left {
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .col-right {
+            background-color: #fafafa; /* Very light gray for contrast */
+        }
+
+        .col-subheader {
+            color: #b91c1c; /* Red subheadings */
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+
+        .col-text {
+            font-size: 12.5px;
+            line-height: 1.55;
+            color: #334155;
+        }
+
+        /* Highlights & Math */
+        .highlight {
+            background-color: #fef08a;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .formula-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-family: 'Inter', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            color: #0369a1;
+            text-align: center;
+        }
+
+        /* 6. SLIDE 4 FULL MAP GRID */
+        .full-map-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            width: 100%;
+            height: 100%;
+            align-content: center;
+            padding: 0 20px;
+        }
+
+        .full-map-col {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 7. NAVIGATION DOCK */
+        .navigation-dock {
+            position: absolute;
+            bottom: -60px; /* Hidden below slide for clean export, visible in browser */
+            display: flex;
+            gap: 15px;
+            background: #fff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .nav-btn {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .nav-btn:hover { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+        .page-indicator { font-size: 13px; font-weight: 600; line-height: 28px; }
+
+        /* Slide Footer Metadata */
+        .slide-footer {
+            position: absolute;
+            bottom: 15px;
+            left: 55px;
+            right: 55px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: MODEL SELECTION -->
+<div class="presentation-container active" id="slide-1">
+    <div class="slide-header">
+        <h1 class="slide-title">1. Model Selection Best Practices</h1>
+        <div class="accent-line"></div>
+    </div>
+    
+    <div class="content-layout">
+        <!-- LEFT PANE: Mind Map Tree -->
+        <div class="left-pane">
+            <div class="map-row has-active-children">
+                <div class="map-root active">Model selection</div>
+                <div class="map-connector"></div>
+                <div class="map-children">
+                    <div class="map-child">Frontier LLM / LLM scale</div>
+                    <div class="map-child">Smaller LLMs</div>
+                    <div class="map-child">Cross-model judging</div>
+                </div>
+            </div>
+            <div class="map-row"><div class="map-root inactive">Structured prompting</div></div>
+            <div class="map-row"><div class="map-root inactive">Improved task understanding</div></div>
+            <div class="map-row"><div class="map-root inactive">Aggregation across judges</div></div>
+            <div class="map-row"><div class="map-root inactive">Reporting scores</div></div>
+            <div class="map-row"><div class="map-root inactive">Judge evaluation</div></div>
+        </div>
+
+        <!-- RIGHT PANE: Content Cards -->
+        <div class="right-pane">
+            <!-- Card 1 -->
+            <div class="content-card">
+                <div class="card-header bg-red">Frontier LLM / LLM Scale</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">
+                            Utilize frontier LLMs – GPT-4/5, Claude Opus/Sonnet, Gemini pro/Flash class models.<br><br>
+                            Judge should usually be at least as capable as the generator (preferably stronger).
+                        </div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">
+                            <span class="highlight">Judging requires evidence-sensitive reasoning:</span> claim extraction, source comparison, unsupported-inference detection, and aggregation. Current research supports the usage of frontier models for high human agreement rates.<br><br>
+                            G-Eval p=0.514; MT-Bench &gt;80% human agreement [Liu et al., 2023; Zheng et al., 2023].
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="content-card">
+                <div class="card-header bg-gold">Smaller LLMs</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">
+                            Smaller LLMs can be utilized under some conditions: Use when fine-tuned (narrow task; sufficiently specified), with a jury/panel setup.<br><br>
+                            Fine-tuned LLM judges cannot be generalized (task-specific; not general-purpose hallucination detectors, Huang et al., 2025).
+                        </div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">
+                            <span class="highlight">Fine-tuning and aggregation reduce judge burden, improves judge accuracy and improve cost/throughput.</span> Research shows comparable judge accuracy as GPT-4:<br>
+                            &bull; Prometheus 13B Pearson=0.897 vs humans;<br>
+                            &bull; PandaLM-7B: 93.75% of GPT-3.5 and 88.28% of GPT-4;<br>
+                            &bull; JudgeLM-7B judges 5K samples in ~3 minutes;<br>
+                            &bull; PoLL (Haiku, Command R, GPT-3.5) &gt;7x cheaper and outperforms GPT-4.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="content-card">
+                <div class="card-header bg-slate">Cross-Model Judging</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">
+                            Use a judge from a different model family than the generator, but judge must still be capable.
+                        </div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">
+                            <span class="highlight">reduces self-preference/familiarity bias,</span> but judge must still be capable. Self-preference bias observed with internal experimentation, GPT-4 (Wataoka et al., 2024); G-Eval notes bias toward LLM-generated texts (Liu et al., 2023).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>STRATEGIC ALIGNMENT DECK v1.0</span>
+        <span>Slide 1 of 4</span>
+    </div>
+</div>
+
+<!-- SLIDE 2: PROMPTING & TASK UNDERSTANDING -->
+<div class="presentation-container" id="slide-2">
+    <div class="slide-header">
+        <h1 class="slide-title">2. Prompting & Task Understanding</h1>
+        <div class="accent-line"></div>
+    </div>
+    
+    <div class="content-layout">
+        <!-- LEFT PANE: Mind Map Tree -->
+        <div class="left-pane">
+            <div class="map-row"><div class="map-root inactive">Model selection</div></div>
+            
+            <div class="map-row has-active-children">
+                <div class="map-root active">Structured prompting</div>
+                <div class="map-connector"></div>
+                <div class="map-children">
+                    <div class="map-child">Define task + metric</div>
+                    <div class="map-child">Chain of thought reasoning</div>
+                    <div class="map-child">Schemas / style</div>
+                </div>
+            </div>
+
+            <div class="map-row has-active-children">
+                <div class="map-root active">Improved task understanding</div>
+                <div class="map-connector"></div>
+                <div class="map-children">
+                    <div class="map-child">Task decomposition</div>
+                    <div class="map-child">Few-shot examples</div>
+                </div>
+            </div>
+
+            <div class="map-row"><div class="map-root inactive">Aggregation across judges</div></div>
+            <div class="map-row"><div class="map-root inactive">Reporting scores</div></div>
+            <div class="map-row"><div class="map-root inactive">Judge evaluation</div></div>
+        </div>
+
+        <!-- RIGHT PANE: Content Cards -->
+        <div class="right-pane">
+            <!-- Card 1 -->
+            <div class="content-card">
+                <div class="card-header bg-red">Define Task + Metric</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">State role, task, metric, and failure condition explicitly.</div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text"><span class="highlight">LLM judges infer the objective from natural-language instructions; ambiguity increases prompt sensitivity.</span> LLM-as-Judge reliability requires prompt standardization (Gu et al., 2024). RAGAS shows that separating evaluation into clearly defined dimensions is necessary.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="content-card">
+                <div class="card-header bg-gold">Chain of Thought Reasoning</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">Judges perform more consistently when the evaluation is broken into explicit reasoning steps before the final verdict is produced.</div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text"><span class="highlight">Chain-of-thought prompting improves performance on complex reasoning tasks... leading to more consistent and accurate judgments</span> (Wei et al., 2022). CoT makes the decision process more traceable and verdicts more accurate.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="content-card">
+                <div class="card-header bg-slate">Schemas / Style</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">Require JSON fields for claims/facts, evidence, reasoning, and verdict.<br><br>Tell the judge to ignore fluency, polish, and length unless they are target metrics.</div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">Structured schema reduces formatting variance, simplifies parsing, improves auditability.<br><span class="highlight">LLM judges can over-reward longer or more polished answers even when correctness is weak. Position, verbosity, and stylistic preferences are known reliability concerns.</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="content-card">
+                <div class="card-header bg-red">Task Decomposition</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">Decompose evaluation into stages &rarr; Claim/fact extraction &rarr; evidence verification &rarr; aggregation &rarr; verdict.<br><br>Require minimal source evidence for supported/contradicted claims.</div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text"><span class="highlight">Complex judgments become more reliable when split into simpler sub-tasks</span> (Gu et al., 2024). LLMs perform better on multi-step reasoning tasks when explicitly specified (CoT). Claim-evidence attribution makes verdicts traceable.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="content-card">
+                <div class="card-header bg-gold">Few-Shot Examples</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">Include examples of judgements for correct and incorrect model outputs.</div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">Anchors task interpretation, clarifies edge cases. LLMs exhibit strong few-shot generalization capabilities; performance increases with in-context demonstrations [Brown et al., 2020].</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>STRATEGIC ALIGNMENT DECK v1.0</span>
+        <span>Slide 2 of 4</span>
+    </div>
+</div>
+
+<!-- SLIDE 3: AGGREGATION, REPORTING & EVALUATION -->
+<div class="presentation-container" id="slide-3">
+    <div class="slide-header">
+        <h1 class="slide-title">3. Aggregation, Reporting & Eval</h1>
+        <div class="accent-line"></div>
+    </div>
+    
+    <div class="content-layout">
+        <!-- LEFT PANE: Mind Map Tree -->
+        <div class="left-pane">
+            <div class="map-row"><div class="map-root inactive">Model selection</div></div>
+            <div class="map-row"><div class="map-root inactive">Structured prompting</div></div>
+            <div class="map-row"><div class="map-root inactive">Improved task understanding</div></div>
+            
+            <!-- Active Nodes (No branches/children) -->
+            <div class="map-row"><div class="map-root active">Aggregation across judges</div></div>
+            <div class="map-row"><div class="map-root active">Reporting scores</div></div>
+            <div class="map-row"><div class="map-root active">Judge evaluation</div></div>
+        </div>
+
+        <!-- RIGHT PANE: Content Cards -->
+        <div class="right-pane">
+            <!-- Card 1 -->
+            <div class="content-card">
+                <div class="card-header bg-red">Aggregation Across Judges</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">
+                            Heterogeneous judge panel &rarr; Combine judges from different model families. Reduces dependence on one model's bias profile; similar judges may share correlated errors.<br><br>
+                            <strong>Approaches:</strong> Majority voting, average score aggregation, reliability weighted aggregation.<br>
+                            <strong>Usage scenarios:</strong> Impracticality of frontier LLMs, high-risk evaluations when annotations are constrained, if "which judge is best" depends on the input.
+                        </div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">
+                            <span class="highlight">PoLL shows diverse panels (Haiku, Command R, GPT-3.5) can outperform a single large judge and reduce intra-model bias</span> [Verga et al., 2024].<br><br>
+                            Reliability weighted aggregation: not all judges are equally reliable; human/gold calibration can assign greater influence to stronger judges. David-Skene and GLAD provide statistical intuition [Dawid & Skene 1979; Whitehill 2009].
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="content-card">
+                <div class="card-header bg-gold">Reporting Scores</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">
+                            <strong>Ratio-based scores:</strong>
+                            <div class="formula-box">Faithfulness = supported claims / total claims</div>
+                            <div class="formula-box">Completeness = covered facts / required facts</div>
+                            <em>Why:</em> Captures partial correctness and provides transparent evidence-grounded scores.<br><br>
+                            <strong>Rubric-based scores:</strong> Use 1-5 scales when partial quality levels matter. <em>Why:</em> Makes scoring thresholds explicit.
+                        </div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">
+                            <span class="highlight">Continuous scores: RAGAS-style source-grounded scoring</span> [Es et al., 2023].<br><br>
+                            Rubric approach makes scoring reliable and interpretable [Gu et al., 2024].
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="content-card">
+                <div class="card-header bg-slate">Judge Evaluation</div>
+                <div class="card-body">
+                    <div class="card-col col-left">
+                        <div class="col-subheader">S t r a t e g y</div>
+                        <div class="col-text">
+                            <strong>Report failure capture:</strong> Use hallucination capture rate for faithfulness and incompleteness capture rate for completeness. <em>Why:</em> False negatives are often more consequential than false alarms.<br><br>
+                            <strong>Use continuous metrics:</strong> Accuracy, precision, F1, Cohen's kappa, and Spearman correlation (for continuous scores). <em>Why:</em> Captures overall agreement, false-alarm tradeoffs.
+                        </div>
+                    </div>
+                    <div class="card-col col-right">
+                        <div class="col-subheader">S u p p o r t i n g &nbsp; R e s e a r c h</div>
+                        <div class="col-text">
+                            MT-Bench, Vectara uses human preference agreement; G-Eval uses human-score correlation [Zheng et al., 2023; Liu et al., 2023].<br><br>
+                            RAGTruth, HaluEval, FaithDial, Faithfulness/HHEM-style evaluations emphasize hallucination/failure rates.<br><br>
+                            G-Eval &rarr; <span class="highlight">Spearman correlation</span> [Liu et al., 2023].
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <span>STRATEGIC ALIGNMENT DECK v1.0</span>
+        <span>Slide 3 of 4</span>
+    </div>
+</div>
+
+<!-- SLIDE 4: FULL MIND MAP -->
+<div class="presentation-container" id="slide-4">
+    <div class="slide-header">
+        <h1 class="slide-title">Complete Framework Map</h1>
+        <div class="accent-line"></div>
+    </div>
+    
+    <div class="full-map-grid">
+        <!-- Column 1 -->
+        <div class="full-map-col">
+            <div class="map-row has-active-children">
+                <div class="map-root active">Model selection</div>
+                <div class="map-connector"></div>
+                <div class="map-children">
+                    <div class="map-child">Frontier LLM / LLM scale</div>
+                    <div class="map-child">Smaller LLMs</div>
+                    <div class="map-child">Cross-model judging</div>
+                </div>
+            </div>
+            
+            <div class="map-row">
+                <div class="map-root active">Aggregation across judges</div>
+            </div>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="full-map-col">
+            <div class="map-row has-active-children">
+                <div class="map-root active">Structured prompting</div>
+                <div class="map-connector"></div>
+                <div class="map-children">
+                    <div class="map-child">Define task + metric</div>
+                    <div class="map-child">Chain of thought reasoning</div>
+                    <div class="map-child">Schemas / style</div>
+                </div>
+            </div>
+            
+            <div class="map-row">
+                <div class="map-root active">Reporting scores</div>
+            </div>
+        </div>
+
+        <!-- Column 3 -->
+        <div class="full-map-col">
+            <div class="map-row has-active-children">
+                <div class="map-root active">Improved task understanding</div>
+                <div class="map-connector"></div>
+                <div class="map-children">
+                    <div class="map-child">Task decomposition</div>
+                    <div class="map-child">Few-shot examples</div>
+                </div>
+            </div>
+            
+            <div class="map-row">
+                <div class="map-root active">Judge evaluation</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-footer">
+        <span>STRATEGIC ALIGNMENT DECK v1.0</span>
+        <span>Slide 4 of 4</span>
+    </div>
+</div>
+
+<!-- NAVIGATION DOCK -->
+<div class="navigation-dock">
+    <button class="nav-btn" onclick="prevSlide()">&larr; Prev Slide</button>
+    <span class="page-indicator" id="page-indicator">Slide 1 of 4</span>
+    <button class="nav-btn" onclick="nextSlide()">Next Slide &rarr;</button>
+</div>
+
+<script>
+    let currentSlide = 1;
+    const totalSlides = 4;
+
+    function updateSlideView() {
+        for (let i = 1; i <= totalSlides; i++) {
+            const slide = document.getElementById(`slide-${i}`);
+            if (i === currentSlide) {
+                slide.classList.add('active');
+            } else {
+                slide.classList.remove('active');
+            }
+        }
+        document.getElementById('page-indicator').textContent = `Slide ${currentSlide} of ${totalSlides}`;
+    }
+
+    function nextSlide() {
+        if (currentSlide < totalSlides) {
+            currentSlide++;
+            updateSlideView();
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlide > 1) {
+            currentSlide--;
+            updateSlideView();
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        }
+    });
+</script>
+
+</body>
+</html>
